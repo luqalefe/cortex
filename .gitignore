@@ -1,0 +1,8 @@
+build/
+*-build/
+node_modules/
+dist/
+.DS_Store
+*.lv2/
+*-backups/
+fp-info-cache
