@@ -128,3 +128,11 @@
 - **Modificação (v1):** `targets/gp5/pack/effects-v1.txt` = 22 efeitos (todos os leves, sem echo/reverb/pitch). Resultado: **~85 KB** de RAM → cabe com folga (sobra ~75 KB p/ 1 pesado encolhido depois). Efeitos "estruturais" (ex.: `radio`) precisam ficar mesmo sem entrar na cadeia.
 - Próximos ajustes documentados no README do pack: echo encurtado/no bloco de 122 KB, pitch com `-DDISCONT_SHIFT=11`, reverb int16/menos combs.
 - Ainda falta o firmware DSP que roda o pack na GP-5 (espelhar o `bench/shim` deles p/ M4F). Esta etapa quantificou e definiu o subconjunto que cabe.
+
+## 2026-11-15 — Firmware do pack na GP-5: receita de port + constraint de RAM
+
+- Iniciada a montagem do firmware do pack. Lido o build do DSP do OpenGP5 (`platform/dsp/build.py`) e o bench do GuitarPedal.
+- **Constraint crítico descoberto:** a GP-5 tem só **19,5 KB para variáveis normais** (.data+.bss); os 122 KB grandes são a região `.large` separada. O v1 tem ~81 KB de bss em `static` comum → NÃO cabe nos 19,5 KB. Modificação central do port: **realocar o bss do pack para o banco de 122 KB** via link.ld próprio (sem editar os efeitos).
+- Receita de integração extraída e documentada em `targets/gp5/pack/PORT-PLAN.md`: como dirigir o core (anel i2s + `single_sample`), ordem de include, símbolos a definir (effect_chain, get_usb/radio_audio_input, put_radio_audio_output), init (reset/routing/pots/init/meters), shim do M4F (espelha `bench/shim`), truque de staging (tudo sob `dsp/` para o `-I<fw>/dsp` do OpenGP5), e medição de CPU via `GP5_CYCLES_WORST`.
+- **CPU:** medição real sai dos contadores do OpenGP5 (`GP5_CYCLES_WORST` @0x20007F78) com o firmware rodando no pedal — ainda não dá pra medir sem o firmware. Estimativa prévia: efeitos leves cabem bem no orçamento (~4.350 ciclos/amostra); pesados (reverb/FFT) a confirmar.
+- Próximo: codificar shim+driver+link.ld, primeiro build, flash, e ler a carga real.
