@@ -17,11 +17,13 @@ Fontes das fotos: `~/codex-private/fotos/2026-11-14-placa-externa.png` e `-2.png
 |---|---|---|---|---|---|
 | U11 | `BP1048B2` / `BP154CUP` | MVSilicon | SoC de áudio Bluetooth (BT, possivelmente USB/interface) | QFP ~48 pinos | marcação: confirmada na foto; função: provável |
 | (centro) | `JAT` / `1823` / `2512` / `S24PQ-000` | desconhecido (remarcado?) | processador principal de efeitos? | QFP ~64 pinos, cristal de 24 MHz ao lado | hipótese |
-| U29 (face inferior da principal) | ilegível na foto | ? | candidato a codec de áudio ou chip analógico (perto dos jacks) | TSSOP ~16 pinos | hipótese |
+| U29 (face inferior da principal) | `CM053B` (logo TI, lote `49K`/`ALE`) | Texas Instruments | **CD4053B (PW, TSSOP-16)**: chave analógica CMOS 3× SPDT, para roteamento de sinal (ex.: seleção de entrada/saída, mudo) — **não é codec** | TSSOP-16 | provável (`CM053B` é a marcação de topo da TI para o CD4053BPW) |
 | X2 + cristal 24 MHz | — | — | clocks independentes dos dois chips | — | provável |
 
 - `2512` parece código de data (2025, semana 12). `S24PQ-000` parece código de cliente/firmware.
 - **Nenhuma flash SPI de 8 pinos (SOIC-8/WSON-8) visível** em nenhuma das faces fotografadas da placa principal, nem na face superior da placa de tela. Falta a face inferior da placa de tela.
+
+**Codec de áudio:** nenhum codec dedicado visível nas faces fotografadas. Hipótese: as conversões A/D e D/A são feitas pelo **ADC/DAC integrado do BP1048B2** (SoCs de áudio da MVSilicon costumam integrar codec), com o JAT processando os efeitos. A confirmar pelo datasheet do BP1048B2 e pelas trilhas entre os jacks e os chips.
 
 ## Conectores e pontos de teste
 
