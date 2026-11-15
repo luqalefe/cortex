@@ -30,8 +30,15 @@ Fontes das fotos: `~/codex-private/fotos/2026-11-14-placa-externa.png` e `-2.png
 | J7 | 1×5 furos, pino 1 marcado (▲) | junto ao chip JAT | **SWD** (3V3/SWDIO/SWCLK/GND/RST) ou UART+BOOT; candidato principal a depuração/gravação |
 | J14 | 2×2 | perto dos regulares/jack | teste/serial? |
 | J4 | 1×4 furos, placa de tela | perto do footswitch | UART (3V3/TX/RX/GND)? |
-| 2×5 pads | grade de 10 pads, borda esquerda da principal | — | interligação placa principal ↔ tela, ou cabeçalho de teste |
+| 2×5 pads | grade de 10 pads, borda esquerda da principal | — | **conector placa principal ↔ tela** (vista lateral mostra um conector fêmea 2×5 preto entre as placas) — provável |
 | TP8 | ponto de teste | face inferior da principal | a medir |
+
+## Vista lateral (foto 3)
+
+- Conector fêmea 2×5 entre as placas: confirma a ligação placa principal ↔ tela por 10 vias.
+- Indutor SMD grande perto da borda: provável conversor DC-DC (fonte/bateria).
+- Bloco vermelho entre as placas: corpo do footswitch ou suporte; a confirmar.
+- Encoder/potenciômetro com eixo, e jacks na lateral da placa principal.
 
 ## Onde fica o firmware
 
