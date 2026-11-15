@@ -23,6 +23,10 @@ Fontes das fotos: `~/codex-private/fotos/2026-11-14-placa-externa.png` e `-2.png
 - `2512` parece código de data (2025, semana 12). `S24PQ-000` parece código de cliente/firmware.
 - **Nenhuma flash SPI de 8 pinos (SOIC-8/WSON-8) visível** em nenhuma das faces fotografadas da placa principal, nem na face superior da placa de tela. Falta a face inferior da placa de tela.
 
+**Pesquisa sobre o chip JAT (2026-11-14):** nenhuma fonte pública identifica o chip. O único tópico de desmontagem (PedalPCB, "Valeton GP5 IC identify") termina sem conclusão; a hipótese mais aceita é peça customizada/remarcada. "Microchip" foi sugerido por um chatbot, sem evidência. Indícios indiretos: ~64 pinos QFP, cristal próprio de 24 MHz, J7 de 5 pinos ao lado (formato típico de SWD de ARM Cortex-M). Num produto irmão (GP-200), um fórum menciona um Cortex-M7 de 600 MHz, mas sem confirmação. Hipótese de trabalho: **MCU ARM Cortex-M de alto desempenho remarcado** (ou DSP dedicado). Confiança: hipótese.
+
+**BP1048B2 (datasheet chinês V0.6):** núcleo RISC de 32 bits com DSP e FPU, até 288 MHz, 320 KB de SRAM, caches de 32 KB, 3 DACs de 24 bits (SNR ≥105 dB) e ADC de 16 bits (SNR ≥94 dB), taxas de 8 a 48 kHz. O datasheet não diz qual é o núcleo.
+
 **Codec de áudio:** nenhum codec dedicado visível nas faces fotografadas. Hipótese: as conversões A/D e D/A são feitas pelo **ADC/DAC integrado do BP1048B2** (SoCs de áudio da MVSilicon costumam integrar codec), com o JAT processando os efeitos. A confirmar pelo datasheet do BP1048B2 e pelas trilhas entre os jacks e os chips.
 
 ## Conectores e pontos de teste
