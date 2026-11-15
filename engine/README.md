@@ -1,6 +1,6 @@
-# Codex Engine (alvo Mac)
+# Cortex Engine (alvo Mac)
 
-Motor de áudio do Codex: carrega o DSP do Faust (`dsp/codex_delay.dsp`), abre áudio
+Motor de áudio do Cortex: carrega o DSP do Faust (`dsp/codex_delay.dsp`), abre áudio
 full-duplex pelo CoreAudio e aceita controle do simulador web por WebSocket.
 
 ## Arquitetura (portátil)

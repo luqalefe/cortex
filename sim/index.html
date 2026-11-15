@@ -3,123 +3,324 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Codex Delay — Simulador</title>
+<title>Cortex — Rig</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg0:#0c0e12; --bg1:#141821; --ink:#eef1f5; --muted:#7c8697;
-    --accent:#35e0cf; --accent-dim:#1c7f76; --amber:#ffb13b;
-    --chassis-a:#2b313c; --chassis-b:#171b22; --screw:#3a4150;
+    --ink:#f2f5f8; --muted:#8a94a6; --faint:#5b6474;
+    --line:rgba(255,255,255,.07); --line2:rgba(255,255,255,.12);
+    --glass:rgba(22,27,36,.72); --accent:#35e0cf;
+    --metal-hi:#6a7382; --metal-mid:#3a414e; --metal-lo:#171b22;
   }
-  * { box-sizing: border-box; }
-  html,body { height:100%; }
+  * { box-sizing:border-box; }
+  html,body { height:100%; margin:0; }
   body {
-    margin:0; color:var(--ink);
-    font:15px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-    background:
-      radial-gradient(1200px 600px at 50% -10%, #1b2533 0%, transparent 60%),
-      radial-gradient(900px 500px at 50% 120%, #10201e 0%, transparent 55%),
-      var(--bg0);
-    display:flex; flex-direction:column; align-items:center; padding:28px 16px 48px;
+    color:var(--ink); font:15px/1.45 'Inter', system-ui, -apple-system, sans-serif;
+    background:#06080b; overflow:hidden;
   }
-  .brand { display:flex; align-items:baseline; gap:10px; margin-bottom:2px; }
-  .brand b { font-size:22px; letter-spacing:.34em; font-weight:800; }
-  .brand span { font-size:12px; letter-spacing:.42em; color:var(--accent); text-transform:uppercase; }
-  .tag { color:var(--muted); font-size:12px; letter-spacing:.08em; margin-bottom:22px; }
+  /* palco cinematográfico */
+  .stage-bg {
+    position:fixed; inset:0; z-index:0;
+    background:
+      radial-gradient(90% 60% at 50% 8%, rgba(53,224,207,.10) 0%, transparent 55%),
+      radial-gradient(120% 90% at 50% 120%, rgba(90,110,255,.10) 0%, transparent 55%),
+      radial-gradient(60% 50% at 50% 45%, #141a24 0%, #0a0d12 60%, #06080b 100%);
+  }
+  .stage-bg::after {   /* vinheta + grão sutil */
+    content:""; position:absolute; inset:0;
+    background:radial-gradient(130% 110% at 50% 45%, transparent 55%, rgba(0,0,0,.6) 100%);
+    pointer-events:none;
+  }
+  .app { position:relative; z-index:1; height:100%; display:flex; flex-direction:column; }
+
+  /* ---- topo ---- */
+  .topbar {
+    display:flex; align-items:center; gap:18px; padding:14px 22px;
+    background:linear-gradient(180deg, rgba(10,13,18,.92), rgba(10,13,18,.5));
+    backdrop-filter:blur(10px); border-bottom:1px solid var(--line);
+  }
+  .logo { display:flex; align-items:baseline; gap:9px; }
+  .logo b { font:800 19px 'Rajdhani'; letter-spacing:.34em; }
+  .logo span { font-size:10px; letter-spacing:.42em; color:var(--accent); text-transform:uppercase; }
+  .tabs { display:flex; gap:4px; }
+  .tab {
+    font:600 12px 'Rajdhani'; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--muted); background:transparent; border:none; cursor:pointer;
+    padding:9px 16px; border-radius:9px; position:relative;
+  }
+  .tab.active { color:var(--ink); background:rgba(255,255,255,.06); }
+  .tab.soon { color:var(--faint); cursor:default; }
+  .tab.soon::after { content:"em breve"; display:block; font:400 7px 'Inter'; letter-spacing:.1em; color:var(--faint); }
+  .grow { flex:1; }
+
+  /* preset pill no centro */
+  .preset {
+    display:flex; align-items:center; gap:6px; background:var(--glass);
+    border:1px solid var(--line2); border-radius:12px; padding:5px 6px; backdrop-filter:blur(8px);
+  }
+  .preset .nav { width:30px; height:30px; border-radius:8px; border:none; background:transparent;
+    color:var(--muted); cursor:pointer; font-size:15px; }
+  .preset .nav:hover { background:rgba(255,255,255,.07); color:var(--ink); }
+  .preset select {
+    font:600 13px 'Inter'; color:var(--ink); background:transparent; border:none;
+    text-align:center; cursor:pointer; min-width:150px; padding:4px 6px; appearance:none;
+  }
+  .preset select option { background:#141a24; }
+  .preset .dirty { color:var(--accent); font-size:16px; width:12px; opacity:0; transition:.2s; }
+  .preset .dirty.on { opacity:1; }
+
+  .actions { display:flex; align-items:center; gap:8px; }
+  .btn {
+    font:600 12px 'Inter'; color:var(--ink); background:rgba(255,255,255,.05);
+    border:1px solid var(--line2); border-radius:9px; padding:8px 13px; cursor:pointer;
+  }
+  .btn:hover { background:rgba(255,255,255,.1); }
+  .btn.primary { background:linear-gradient(180deg,#2aa99b,#1f7d72); border-color:#2fb3a4; color:#eafffb; }
+  .btn.icon { width:36px; padding:0; height:34px; font-size:16px; position:relative; }
+  .menu { position:absolute; right:22px; top:58px; background:#141a24; border:1px solid var(--line2);
+    border-radius:12px; padding:6px; min-width:180px; box-shadow:0 20px 50px rgba(0,0,0,.5); display:none; z-index:30; }
+  .menu.open { display:block; }
+  .menu button { display:block; width:100%; text-align:left; background:transparent; border:none;
+    color:var(--ink); font:500 13px 'Inter'; padding:9px 12px; border-radius:8px; cursor:pointer; }
+  .menu button:hover { background:rgba(255,255,255,.07); }
+  .menu .sep { height:1px; background:var(--line); margin:5px 4px; }
+  .menu button.danger { color:#ff7a7a; }
+
+  /* ---- palco / board ---- */
+  .stage { flex:1; overflow:auto; display:flex; align-items:center; padding:36px 28px 20px; }
+  .board { display:flex; gap:30px; align-items:flex-end; margin:auto; }
+  .flow { align-self:center; margin-bottom:150px; width:40px; height:2px; flex:0 0 auto;
+    background:linear-gradient(90deg, transparent, rgba(53,224,207,.5), transparent); position:relative; }
+  .flow::after { content:""; position:absolute; right:-1px; top:-3px; border:4px solid transparent;
+    border-left-color:rgba(53,224,207,.6); }
 
   .pedal {
-    position:relative; width:100%; max-width:460px;
+    position:relative; flex:0 0 auto; width:218px; border-radius:22px; padding:20px 18px 20px;
     background:
-      linear-gradient(180deg, var(--chassis-a), var(--chassis-b)),
-      repeating-linear-gradient(90deg, rgba(255,255,255,.015) 0 2px, transparent 2px 4px);
-    border:1px solid #05070a; border-radius:26px;
-    padding:26px 26px 30px;
+      linear-gradient(180deg, rgba(255,255,255,.07), transparent 22%),
+      linear-gradient(180deg, #333b47 0%, #212834 40%, #141a22 100%);
+    border:1px solid rgba(0,0,0,.6);
     box-shadow:
-      0 30px 60px rgba(0,0,0,.55), 0 2px 0 rgba(255,255,255,.05) inset,
-      0 -24px 40px rgba(0,0,0,.4) inset;
+      0 1px 0 rgba(255,255,255,.12) inset,
+      0 -30px 50px rgba(0,0,0,.35) inset,
+      0 26px 50px rgba(0,0,0,.6), 0 4px 10px rgba(0,0,0,.5);
+    transition:transform .18s, opacity .18s, filter .18s;
   }
-  .screw { position:absolute; width:14px; height:14px; border-radius:50%;
-    background:radial-gradient(circle at 35% 30%, #5b6474, var(--screw) 70%, #10131a);
-    box-shadow:0 1px 1px rgba(0,0,0,.6), 0 0 0 1px #0a0d12; }
-  .screw::after { content:""; position:absolute; inset:4px; border-top:2px solid rgba(0,0,0,.45);
-    transform:rotate(35deg); }
-  .screw.tl{top:12px;left:12px}.screw.tr{top:12px;right:12px}
-  .screw.bl{bottom:12px;left:12px}.screw.br{bottom:12px;right:12px}
-
-  .head { display:flex; justify-content:space-between; align-items:center; margin:2px 4px 16px; }
-  .head .title { font-size:13px; letter-spacing:.28em; color:var(--muted); text-transform:uppercase; }
-  .conn { display:flex; align-items:center; gap:7px; font-size:11px; color:var(--muted); letter-spacing:.06em; }
-  .dot { width:8px; height:8px; border-radius:50%; background:#5a2030; box-shadow:0 0 0 1px #000 inset; transition:.25s; }
-  .dot.on { background:var(--accent); box-shadow:0 0 8px var(--accent); }
-
-  .screen {
-    position:relative; border-radius:12px; overflow:hidden; margin-bottom:22px;
-    border:1px solid #0a1412; background:#04100e;
-    box-shadow:0 2px 10px rgba(0,0,0,.5) inset, 0 0 0 3px #0c0f14;
+  .pedal::after {   /* reflexo no chão */
+    content:""; position:absolute; left:8%; right:8%; bottom:-26px; height:26px; border-radius:50%;
+    background:radial-gradient(closest-side, rgba(0,0,0,.55), transparent); filter:blur(3px);
   }
-  canvas { display:block; width:100%; height:160px; }
-  .readout {
-    position:absolute; top:10px; left:12px; right:12px; display:flex; justify-content:space-between;
-    font:11px ui-monospace, Menlo, monospace; color:var(--accent); letter-spacing:.04em;
-    text-shadow:0 0 6px rgba(53,224,207,.5); pointer-events:none;
-  }
-  .readout .bank { color:var(--amber); text-shadow:0 0 6px rgba(255,177,59,.5); }
+  .pedal:hover { transform:translateY(-3px); }
+  .pedal.off { opacity:.62; filter:saturate(.45) brightness(.9); }
+  .pedal .accentbar { height:3px; border-radius:3px; margin:-6px -4px 14px; opacity:.8;
+    box-shadow:0 0 14px currentColor; }
 
-  .knobs { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
-  @media (max-width:420px){ .knobs{ grid-template-columns:repeat(2,1fr); gap:18px 6px; } }
-  .knob { display:flex; flex-direction:column; align-items:center; gap:7px; user-select:none; }
-  .knob svg { cursor:ns-resize; touch-action:none; display:block; }
-  .knob .name { font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
-  .knob .val { font:12px ui-monospace, monospace; color:var(--ink); min-height:14px; }
+  .screw { position:absolute; width:12px; height:12px; border-radius:50%;
+    background:radial-gradient(circle at 35% 28%, #7a8494, #3a4150 65%, #0d1017);
+    box-shadow:0 1px 1px rgba(0,0,0,.7), 0 0 0 1px rgba(0,0,0,.5); }
+  .screw::after { content:""; position:absolute; inset:3px; border-top:1.5px solid rgba(0,0,0,.5); transform:rotate(40deg); }
+  .screw.tl{top:10px;left:10px}.screw.tr{top:10px;right:10px}.screw.bl{bottom:10px;left:10px}.screw.br{bottom:10px;right:10px}
 
-  .foot { margin-top:26px; display:flex; flex-direction:column; align-items:center; gap:12px; }
-  .stomp-led { width:12px; height:12px; border-radius:50%; background:#2a1414; box-shadow:0 0 0 2px #0a0d12, 0 0 0 4px #1a1e26; transition:.08s; }
-  .stomp-led.on { background:var(--amber); box-shadow:0 0 14px var(--amber), 0 0 0 2px #0a0d12, 0 0 0 4px #1a1e26; }
-  .fsw {
-    width:104px; height:104px; border-radius:50%; border:none; cursor:pointer; color:var(--ink);
-    font-size:10px; letter-spacing:.16em; text-transform:uppercase; font-weight:700;
+  .phead { text-align:center; margin:2px 0 14px; }
+  .pname { font:800 18px 'Rajdhani'; letter-spacing:.06em; text-shadow:0 1px 2px rgba(0,0,0,.6); }
+  .psub { font-size:9.5px; color:var(--muted); letter-spacing:.14em; text-transform:uppercase; margin-top:1px; }
+
+  .mode { display:flex; align-items:center; justify-content:center; gap:7px; margin:0 0 16px; }
+  .mode .mbtn { width:26px; height:26px; border-radius:7px; border:1px solid var(--line2);
+    background:rgba(0,0,0,.3); color:var(--muted); cursor:pointer; font-size:13px; }
+  .mode .mbtn:hover { color:var(--ink); background:rgba(255,255,255,.07); }
+  .mode .mname { min-width:98px; text-align:center; font:600 11px 'Rajdhani'; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--ink); background:#0a0e13; border:1px solid var(--line);
+    border-radius:8px; padding:7px 6px; box-shadow:0 1px 4px rgba(0,0,0,.5) inset; }
+
+  .knobs { display:grid; grid-template-columns:repeat(3,1fr); gap:16px 4px; justify-items:center; }
+  .knob { display:flex; flex-direction:column; align-items:center; gap:6px; user-select:none; }
+  .knob svg { cursor:ns-resize; touch-action:none; display:block; filter:drop-shadow(0 4px 6px rgba(0,0,0,.5)); }
+  .knob .kname { font:600 8.5px 'Inter'; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
+  .knob .kval { font:600 11px 'Inter'; color:var(--ink); min-height:13px; }
+
+  .foot { display:flex; flex-direction:column; align-items:center; gap:11px; margin-top:18px; }
+  .led { width:12px; height:12px; border-radius:50%; background:#241414;
+    box-shadow:0 0 0 2px #0a0d12, 0 0 0 4px rgba(255,255,255,.05); transition:.12s; }
+  .led.on { box-shadow:0 0 16px 2px currentColor, 0 0 0 2px #0a0d12, 0 0 0 4px rgba(255,255,255,.05); }
+  .fsw { width:78px; height:78px; border-radius:50%; border:none; cursor:pointer; color:#cfd6e0;
+    font:700 9px 'Rajdhani'; letter-spacing:.18em; text-transform:uppercase;
     background:
-      radial-gradient(circle at 50% 32%, #5a606c 0%, #343a45 45%, #1d212a 75%),
-      #1d212a;
-    box-shadow:0 10px 22px rgba(0,0,0,.6), 0 2px 2px rgba(255,255,255,.12) inset, 0 -10px 16px rgba(0,0,0,.5) inset;
-    transition:transform .05s;
-  }
-  .fsw:active { transform:translateY(3px); box-shadow:0 4px 10px rgba(0,0,0,.6), 0 2px 2px rgba(255,255,255,.1) inset; }
+      radial-gradient(circle at 50% 30%, #6b7280 0%, #3a414e 42%, #1b2029 72%),
+      #1b2029;
+    box-shadow:0 10px 20px rgba(0,0,0,.6), 0 2px 3px rgba(255,255,255,.18) inset, 0 -12px 18px rgba(0,0,0,.55) inset; }
+  .fsw:active { transform:translateY(3px); box-shadow:0 4px 10px rgba(0,0,0,.6), 0 2px 3px rgba(255,255,255,.14) inset; }
 
-  .hint { color:var(--muted); font-size:12px; margin-top:22px; text-align:center; max-width:460px; line-height:1.6; }
-  .hint code { color:#aeb7c6; background:#0f131a; padding:1px 6px; border-radius:5px; }
+  /* ---- barra inferior (transporte / medidores) ---- */
+  .bottombar {
+    display:flex; align-items:center; gap:22px; padding:12px 22px;
+    background:linear-gradient(0deg, rgba(10,13,18,.92), rgba(10,13,18,.5));
+    backdrop-filter:blur(10px); border-top:1px solid var(--line);
+  }
+  .meter { display:flex; align-items:center; gap:9px; }
+  .meter .mlabel { font:600 9px 'Rajdhani'; letter-spacing:.18em; color:var(--muted); text-transform:uppercase; }
+  .bar { width:120px; height:7px; border-radius:4px; background:rgba(255,255,255,.06); overflow:hidden; position:relative; }
+  .bar > i { position:absolute; left:0; top:0; bottom:0; width:0%;
+    background:linear-gradient(90deg,#2aa99b,#35e0cf 70%,#ffd36b); transition:width .1s; }
+  .tuner { display:flex; align-items:center; gap:8px; color:var(--faint); font:600 11px 'Rajdhani'; letter-spacing:.14em; text-transform:uppercase; }
+  .pill { font:600 10px 'Rajdhani'; letter-spacing:.14em; text-transform:uppercase; color:var(--faint);
+    border:1px solid var(--line); border-radius:999px; padding:5px 12px; }
+
+  .toast { position:fixed; bottom:72px; left:50%; transform:translateX(-50%);
+    background:rgba(20,26,36,.95); border:1px solid var(--line2); color:var(--ink);
+    padding:10px 18px; border-radius:12px; font-size:13px; opacity:0; transition:opacity .2s;
+    pointer-events:none; z-index:40; box-shadow:0 12px 30px rgba(0,0,0,.5); }
+  .toast.show { opacity:1; }
+
+  /* ===================== SKINS (recriações dos pedais reais) ===================== */
+
+  /* --- TS9: overdrive verde, LED vermelho, grande chapa prateada de pisar --- */
+  .pedal.skin-ts9 {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.10), transparent 18%),
+      linear-gradient(180deg, #5f8c41 0%, #3f6129 52%, #284219 100%);
+  }
+  .pedal.skin-ts9 .accentbar { display:none; }
+  .pedal.skin-ts9 .pname { color:#f4ecd2; font-style:italic; text-shadow:0 1px 2px rgba(0,0,0,.6); }
+  .pedal.skin-ts9 .psub  { color:rgba(244,236,210,.7); }
+  .pedal.skin-ts9 .fsw {
+    width:128px; height:46px; border-radius:9px; color:#2a2e35; font-size:9px;
+    background:linear-gradient(180deg,#dadfe5,#aab0b9 58%,#8f949d);
+    box-shadow:0 7px 16px rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.55) inset, 0 -6px 10px rgba(0,0,0,.3) inset;
+  }
+  .pedal.skin-ts9 .fsw:active { transform:translateY(2px); }
+
+  /* --- DL4: delay verde, seletor de modo em destaque --- */
+  .pedal.skin-dl4 {
+    width:244px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.08), transparent 18%),
+      linear-gradient(180deg, #2f9f6b 0%, #1f7850 52%, #14533810 0%), linear-gradient(180deg,#1f7850,#123f2b);
+  }
+  .pedal.skin-dl4 .mname { min-width:120px; font-size:12px; color:#eafff5;
+    background:#06130d; border-color:rgba(255,255,255,.12); box-shadow:0 0 10px rgba(57,217,138,.25) inset; }
+  .pedal.skin-dl4 .pname { color:#eafff5; }
+
+  /* --- Boss (RV-6): corpo claro, painel em cima, treadle grande embaixo --- */
+  .pedal.skin-boss {
+    width:220px; color:#20242c; padding-bottom:0;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.55), transparent 22%),
+      linear-gradient(180deg, #edf0f4 0%, #ccd1d9 55%, #b2b8c1 100%);
+  }
+  .pedal.skin-boss .accentbar { display:none; }
+  .pedal.skin-boss .pname { color:#1a1d23; }
+  .pedal.skin-boss .psub  { color:#5b616b; }
+  .pedal.skin-boss .kname { color:#565c66; }
+  .pedal.skin-boss .kval  { color:#20242c; }
+  .pedal.skin-boss .mname { color:#20242c; background:#dfe3e9; border-color:rgba(0,0,0,.15);
+    box-shadow:0 1px 3px rgba(0,0,0,.2) inset; }
+  .pedal.skin-boss .mbtn  { color:#5b616b; background:rgba(0,0,0,.06); border-color:rgba(0,0,0,.12); }
+  .pedal.skin-boss .jewel { position:absolute; top:14px; right:16px; width:11px; height:11px; border-radius:50%;
+    background:#3a2020; box-shadow:0 0 0 2px rgba(0,0,0,.25); transition:.12s; }
+  .pedal.skin-boss .jewel.on { box-shadow:0 0 14px 2px currentColor, 0 0 0 2px rgba(0,0,0,.25); background:currentColor; }
+  .treadle {
+    margin:16px -18px 0; height:120px; border-radius:0 0 21px 21px; cursor:pointer; position:relative;
+    display:flex; align-items:flex-end; justify-content:center; padding-bottom:12px;
+    color:#cfd6e0; font:700 10px 'Rajdhani'; letter-spacing:.22em; text-transform:uppercase;
+    background:linear-gradient(180deg,#434a54 0%,#2a2f38 60%,#1b1f26 100%);
+    box-shadow:0 10px 20px rgba(0,0,0,.45) inset, 0 -2px 0 rgba(255,255,255,.06) inset;
+  }
+  .treadle::before { content:""; position:absolute; top:-7px; left:50%; transform:translateX(-50%);
+    width:16px; height:16px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #9aa3b2, #3a4150 70%, #10131a);
+    box-shadow:0 1px 2px rgba(0,0,0,.6); }
+  .treadle:active { background:linear-gradient(180deg,#3a414b,#22272f 60%,#15191f); }
+
+  /* ===================== VISUALIZADOR 3D ===================== */
+  #view3d { position:fixed; inset:0; z-index:50; display:none; flex-direction:column;
+    background:#06080b; }
+  #view3d.open { display:flex; }
+  .v3-bar { display:flex; align-items:center; gap:14px; padding:12px 18px;
+    background:linear-gradient(180deg, rgba(10,13,18,.95), rgba(10,13,18,.6));
+    border-bottom:1px solid var(--line); backdrop-filter:blur(8px); }
+  .v3-title { font:700 14px 'Rajdhani'; letter-spacing:.14em; text-transform:uppercase; }
+  .v3-seg { display:flex; background:rgba(255,255,255,.05); border:1px solid var(--line2);
+    border-radius:10px; padding:3px; }
+  .v3-mode { font:600 12px 'Inter'; color:var(--muted); background:transparent; border:none;
+    padding:7px 14px; border-radius:8px; cursor:pointer; }
+  .v3-mode.active { color:var(--ink); background:rgba(255,255,255,.1); }
+  .v3-explode { display:flex; align-items:center; gap:9px; color:var(--muted);
+    font:600 11px 'Rajdhani'; letter-spacing:.14em; text-transform:uppercase; }
+  .v3-explode input { accent-color:var(--accent); width:140px; }
+  .v3-canvas { flex:1; min-height:0; }
+  .v3-canvas canvas { display:block; }
+  .v3-hint { position:absolute; bottom:16px; left:50%; transform:translateX(-50%);
+    color:var(--faint); font-size:11px; letter-spacing:.06em; }
 </style>
 </head>
 <body>
-  <div class="brand"><b>CODEX</b><span>delay</span></div>
-  <div class="tag">simulador do pedal · motor em tempo real</div>
-
-  <div class="pedal">
-    <i class="screw tl"></i><i class="screw tr"></i><i class="screw bl"></i><i class="screw br"></i>
-    <div class="head">
-      <div class="title">Codex Delay</div>
-      <div class="conn"><span class="dot" id="dot"></span><span id="status">conectando…</span></div>
-    </div>
-
-    <div class="screen">
-      <canvas id="viz"></canvas>
-      <div class="readout">
-        <span id="ro-left">CODEX DELAY</span>
-        <span class="bank" id="ro-right">—</span>
+  <div class="stage-bg"></div>
+  <div class="app">
+    <div class="topbar">
+      <div class="logo"><b>CORTEX</b><span>rig</span></div>
+      <div class="tabs">
+        <button class="tab active" data-tab="pedals">Pedals</button>
+        <button class="tab soon" data-tab="amp">Amp</button>
+        <button class="tab soon" data-tab="cab">Cab</button>
+        <button class="tab soon" data-tab="mixer">Mixer</button>
       </div>
+      <div class="grow"></div>
+      <div class="preset">
+        <button class="nav" id="prevPreset">◀</button>
+        <span class="dirty" id="dirtyDot">●</span>
+        <select id="presetSel"></select>
+        <button class="nav" id="nextPreset">▶</button>
+      </div>
+      <div class="grow"></div>
+      <div class="actions">
+        <button class="btn primary" id="btnSave">Salvar</button>
+        <button class="btn icon" id="btnMenu">⋯</button>
+      </div>
+      <div class="menu" id="menu">
+        <button id="mSaveAs">Salvar como…</button>
+        <button id="mNew">Nova board</button>
+        <div class="sep"></div>
+        <button id="mExport">Exportar preset</button>
+        <button id="mImport">Importar preset</button>
+        <div class="sep"></div>
+        <button id="mDelete" class="danger">Excluir preset</button>
+      </div>
+      <input id="fileImport" type="file" accept="application/json" style="display:none">
     </div>
 
-    <div class="knobs" id="knobs"></div>
+    <div class="stage"><div class="board" id="board"></div></div>
 
-    <div class="foot">
-      <div class="stomp-led" id="led"></div>
-      <button class="fsw" id="fsw">Active</button>
+    <div class="bottombar">
+      <div class="meter"><span class="mlabel">In</span><div class="bar"><i id="meterIn"></i></div></div>
+      <div class="grow"></div>
+      <div class="tuner">◁ Tuner · em breve ▷</div>
+      <div class="grow"></div>
+      <span class="pill" id="chainInfo">— pedais</span>
+      <div class="meter"><span class="mlabel">Out</span><div class="bar"><i id="meterOut"></i></div></div>
     </div>
   </div>
 
-  <div class="hint">
-    Motor: <code>codex-engine --in "GP-5" --out "GP-5"</code>.
-    Arraste os knobs (duplo-clique = padrão). O footswitch faz o bypass.
+  <div id="view3d">
+    <div class="v3-bar">
+      <span class="v3-title" id="view3d-title">3D</span>
+      <div class="grow"></div>
+      <div class="v3-seg">
+        <button class="v3-mode active" data-mode="studio">Estúdio</button>
+        <button class="v3-mode" data-mode="board">No board</button>
+      </div>
+      <label class="v3-explode"><span>Explodir</span>
+        <input type="range" id="explodeRange" min="0" max="100" value="0"></label>
+      <div class="grow"></div>
+      <button class="btn" id="view3dClose">Fechar ✕</button>
+    </div>
+    <div class="v3-canvas" id="view3d-canvas"></div>
+    <div class="v3-hint">Arraste para girar · scroll para zoom</div>
   </div>
+
+  <div class="toast" id="toast"></div>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>
