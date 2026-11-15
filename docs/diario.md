@@ -46,3 +46,13 @@
 - Avaliação: **hipótese**. "JAT S24PQ" não corresponde a nenhum fabricante conhecido; pode ser remarcação ou erro de leitura. MVSilicon é plausível (SoCs de áudio BT com núcleo e DSP), e pode ser ele o processador principal. A ligação SnapTone ↔ NAM não está confirmada.
 - Como verificar: A9 (cpu_rec no arquivo de atualização) para o conjunto de instruções; B1/B2 (fotos próprias com marcação legível, contagem de pinos, encapsulamento).
 - Risco anotado: SDKs da MVSilicon costumam ser distribuídos sob NDA. Se o firmware rodar nele, pode não haver compilador aberto. Reforça a arquitetura portátil (HAL).
+
+## 2026-11-14 — A4 + A9 Firmware oficial
+
+- Baixados do site oficial (valeton.net) os dois arquivos existentes: GP-5 Firmware V1.0.3 (lançamento inicial, 23/05/2025) e V1.0.6 (30/06/2025). Em `~/codex-private/firmware/V1.0.x/`. Tamanhos ~2,09 MB; SHA-256 no laudo. Notas de versão (PDF) extraídas com nomes simples (os originais tinham nome em chinês, o que causou o aviso "disk full?" no unzip — não era disco cheio; há 121 GB livres).
+- Análise com `re/fw-analyze.py` + inspeção de estrutura. Resultados em `docs/gp5/firmware.md`:
+  - Container próprio com magic ASCII **`HTFW`** (provável "HoTone FirmWare"), palavra de versão, tamanho e tabela de seções. É um pacote multi-seção, não imagem única.
+  - **Não criptografado** (entropia 6,58; 4392 strings legíveis). Cauda de só 136 B → **provavelmente não assinado** (sem bloco de assinatura; SHA-256 embutido é para integridade). Compressão **parcial** (regiões isoladas de entropia alta = recursos/áudio; GIF de boot embutido).
+  - Conjunto de instruções: cpu_rec dá ARMhf no início e **NDS32 (Andes)** na maior região de código. Strings mostram pilha BLE BTstack, USB device, SDIO e áudio → firmware do SoC principal (casa com MVSilicon BP1048B2, "RISC 32 bits"). Hipótese: núcleo **Andes NDS32**, toolchain menos comum. Confiança baixa/média.
+  - Ambiguidade: não está claro se o JAT tem firmware próprio em memória separada. A confirmar na Fase B.
+- Implicação para o Codex: substituição pela via de atualização parece plausível (sem cripto/assinatura forte); mas o alvo pode ser Andes, não ARM — reforça HAL + DSP portátil. Passo decisivo: ler IDCODE pela porta de depuração (J7).
