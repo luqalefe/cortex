@@ -56,3 +56,13 @@
   - Conjunto de instruções: cpu_rec dá ARMhf no início e **NDS32 (Andes)** na maior região de código. Strings mostram pilha BLE BTstack, USB device, SDIO e áudio → firmware do SoC principal (casa com MVSilicon BP1048B2, "RISC 32 bits"). Hipótese: núcleo **Andes NDS32**, toolchain menos comum. Confiança baixa/média.
   - Ambiguidade: não está claro se o JAT tem firmware próprio em memória separada. A confirmar na Fase B.
 - Implicação para o Codex: substituição pela via de atualização parece plausível (sem cripto/assinatura forte); mas o alvo pode ser Andes, não ARM — reforça HAL + DSP portátil. Passo decisivo: ler IDCODE pela porta de depuração (J7).
+
+## 2026-11-14 — Versão Mac do Codex (início)
+
+- Criado `engine/` com arquitetura portátil (HAL): `engine.h` e o DSP não conhecem CoreAudio nem WebSocket; cada alvo implementa `AudioBackend`/`ControlServer`.
+- DSP: `codex_delay.hpp` gerado do `.dsp` pelo Faust na compilação (via CMake). Invólucro em `dsp_codex.h` usando MapUI para ajustar parâmetros por nome.
+- Áudio Mac: `audio_miniaudio.h` (miniaudio 0.11.21 vendido em `third_party/`, CoreAudio duplex, f32, de/entrelaçamento por canal).
+- Controle: `ws_server.h`, servidor WebSocket mínimo escrito à mão (SHA-1 + base64 para o handshake, frames de texto mascarados, ping/pong, só localhost).
+- Simulador `sim/`: interface do pedal em HTML/JS puro (4 knobs SVG arrastáveis, footswitch de bypass, LED de nível, OLED), conecta no motor por WebSocket com reconexão.
+- Testado: `--selftest` detecta ecos do delay em 300/600/900 ms com realimentação decaindo (0,50→0,15→0,06) = DSP correto. `--list` enxerga a GP-5. Teste de ponta a ponta do WebSocket (cliente Python): handshake 101 + Sec-WebSocket-Accept corretos, `mix` e `bypass` aplicados e estado devolvido.
+- Pendente: ouvir o áudio ao vivo (precisa de fone/interface para evitar microfonia); mais efeitos no DSP; presets.

@@ -14,3 +14,6 @@ codex-private/
 *.img
 *.pcapng
 re/.venv/
+# Engine
+engine/build/
+engine/generated/

@@ -1,4 +1,75 @@
 <!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8"><title>Codex Delay — Simulador</title></head>
-<body><h1>Codex Delay — simulador</h1><p>Esqueleto ok. A interface do pedal será construída aqui.</p>
-<script type="module" src="/src/main.js"></script></body></html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Codex Delay — Simulador</title>
+<style>
+  :root {
+    --bg: #15171c; --panel: #1f232b; --ink: #e8eaed; --muted: #8b93a0;
+    --accent: #3ad6c5; --knob: #2a2f39; --knob-ind: #3ad6c5; --led-off: #3a2020;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.4 ui-sans-serif, system-ui, -apple-system, sans-serif;
+    display: flex; flex-direction: column; align-items: center; padding: 24px 16px;
+  }
+  h1 { font-size: 18px; letter-spacing: .14em; text-transform: uppercase; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+  .pedal {
+    width: 100%; max-width: 420px; background: linear-gradient(180deg,#232833,#191c22);
+    border: 1px solid #0c0e11; border-radius: 20px; padding: 22px 22px 28px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .led {
+    width: 14px; height: 14px; border-radius: 50%; background: var(--led-off);
+    box-shadow: inset 0 0 3px #000; transition: background .05s, box-shadow .05s;
+  }
+  .status { font-size: 12px; color: var(--muted); }
+  .oled {
+    background: #05100e; color: var(--accent); border-radius: 8px; padding: 12px 14px;
+    font: 13px/1.5 ui-monospace, Menlo, monospace; min-height: 70px; margin-bottom: 20px;
+    border: 1px solid #0b1c19; text-shadow: 0 0 6px rgba(58,214,197,.5); white-space: pre;
+  }
+  .knobs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px 10px; }
+  .knob { display: flex; flex-direction: column; align-items: center; gap: 6px; user-select: none; }
+  .knob svg { cursor: ns-resize; touch-action: none; }
+  .knob .name { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .knob .val { font: 13px ui-monospace, monospace; color: var(--ink); }
+  .foot {
+    margin-top: 24px; display: flex; justify-content: center;
+  }
+  .fsw {
+    width: 92px; height: 92px; border-radius: 50%; border: none; cursor: pointer;
+    background: radial-gradient(circle at 50% 38%, #4a4f59, #22262e 70%);
+    box-shadow: 0 6px 16px rgba(0,0,0,.5), inset 0 2px 3px rgba(255,255,255,.1);
+    color: var(--ink); font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+  }
+  .fsw:active { transform: translateY(2px); }
+  .fsw.bypassed { color: var(--muted); }
+  .hint { color: var(--muted); font-size: 12px; margin-top: 18px; text-align: center; max-width: 420px; }
+</style>
+</head>
+<body>
+  <h1>Codex Delay</h1>
+  <div class="sub">simulador do pedal · motor via WebSocket</div>
+  <div class="pedal">
+    <div class="top">
+      <div class="led" id="led"></div>
+      <div class="status" id="status">conectando…</div>
+    </div>
+    <div class="oled" id="oled">—</div>
+    <div class="knobs" id="knobs"></div>
+    <div class="foot">
+      <button class="fsw" id="fsw">Bypass</button>
+    </div>
+  </div>
+  <div class="hint">
+    Rode o motor: <code>codex-engine --in "GP-5" --out "Alto-falantes"</code>.
+    Arraste os knobs para cima/baixo. O footswitch liga/desliga o efeito (bypass).
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
