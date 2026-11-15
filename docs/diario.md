@@ -39,3 +39,10 @@
 3. A4: exportar presets/IRs/SnapTones e baixar o arquivo de atualização da mesma versão (e da mais recente) para `~/codex-private/firmware/`.
 4. A5: fazer as capturas. Há editor oficial para macOS ou só para Windows?
 5. A8 (`re/gp5-ctl.py`) depende do protocolo (A7). Nenhum comando de escrita será enviado antes disso e da sua aprovação.
+
+## 2026-11-14 — Hipótese de hardware (informação externa, não verificada)
+
+- Relato trazido pelo dono, de fonte pública não citada: o chip principal teria marcação customizada/obscura ("JAT S24PQ" ou parecida), junto com um chip **MVSilicon** (Bluetooth, áudio e interface). A Valeton não divulga o DSP.
+- Avaliação: **hipótese**. "JAT S24PQ" não corresponde a nenhum fabricante conhecido; pode ser remarcação ou erro de leitura. MVSilicon é plausível (SoCs de áudio BT com núcleo e DSP), e pode ser ele o processador principal. A ligação SnapTone ↔ NAM não está confirmada.
+- Como verificar: A9 (cpu_rec no arquivo de atualização) para o conjunto de instruções; B1/B2 (fotos próprias com marcação legível, contagem de pinos, encapsulamento).
+- Risco anotado: SDKs da MVSilicon costumam ser distribuídos sob NDA. Se o firmware rodar nele, pode não haver compilador aberto. Reforça a arquitetura portátil (HAL).
