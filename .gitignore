@@ -6,3 +6,11 @@ dist/
 *.lv2/
 *-backups/
 fp-info-cache
+# Arquivos do fabricante (sala limpa) — nunca no repositório
+codex-private/
+*.bin
+*.hex
+*.dfu
+*.img
+*.pcapng
+re/.venv/
