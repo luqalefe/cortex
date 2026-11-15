@@ -136,3 +136,15 @@
 - Receita de integração extraída e documentada em `targets/gp5/pack/PORT-PLAN.md`: como dirigir o core (anel i2s + `single_sample`), ordem de include, símbolos a definir (effect_chain, get_usb/radio_audio_input, put_radio_audio_output), init (reset/routing/pots/init/meters), shim do M4F (espelha `bench/shim`), truque de staging (tudo sob `dsp/` para o `-I<fw>/dsp` do OpenGP5), e medição de CPU via `GP5_CYCLES_WORST`.
 - **CPU:** medição real sai dos contadores do OpenGP5 (`GP5_CYCLES_WORST` @0x20007F78) com o firmware rodando no pedal — ainda não dá pra medir sem o firmware. Estimativa prévia: efeitos leves cabem bem no orçamento (~4.350 ciclos/amostra); pesados (reverb/FFT) a confirmar.
 - Próximo: codificar shim+driver+link.ld, primeiro build, flash, e ler a carga real.
+
+## 2026-11-15 — Firmware do Cortex Pack RODANDO na GP-5 + CPU medida
+
+- Montado o firmware do pack (core de áudio + efeitos do GuitarPedal) sobre a plataforma do OpenGP5. Arquivos em `targets/gp5/pack/src/`: `pack.c` (driver: emula o anel i2s, dirige `single_sample`, expõe API), `firmware.h` (liga ao contrato gp5_dsp.h), `link-pack.ld` (realoca o .bss do pack p/ o banco de 122 KB), `build-pack.sh` (staging + compila pack.o separado + linka com o responder + empacota HTFW).
+- Iterações de build resolvidas: headers padrão (stddef/stdbool), efeito `analog_tone` removido (depende de hwtone.h do hardware deles), `memcpy/memset/memmove`+`log2f` vêm do OpenGP5 (não redefinir; gp5_math.c fora do link p/ evitar colisão de log2f), adicionados `fabsf/sqrtf/floorf/rintf` (faltavam com -nostdlib).
+- **Build cabe com folga:** código ~36 KB (de 64), RAM normal ~5,7 KB (de 19,5), banco grande ~15 KB (de 122) — a relocação do .bss p/ `.large` funcionou.
+- **Gravado na GP-5 (28 s) e MEDIDO** com `gp5_link.py load`:
+  - cadeia Signal Chain + Boost: **~83.800 ciclos/bloco = ~30%** do orçamento (278k).
+  - pior bloco 255.197 (91,8%), **0 blocos atrasados** → roda em tempo real sem dropout.
+  - pico isolado provável de init/analisador; investigar depois.
+- Conclusão: **o sistema do Linus (efeitos+DSP) roda na GP-5 em tempo real.** Sobra CPU e RAM para encadear vários efeitos e trazer 1 pesado. O pedal agora roda o pack (cadeia padrão Boost); reverter = reflash do delay ou da Valeton.
+- Próximos: medir cadeias maiores, mapear footswitch/knobs nos efeitos do pack, investigar o pico, trazer echo/reverb encolhidos (há folga no banco de 122 KB).

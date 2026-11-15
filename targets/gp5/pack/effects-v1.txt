@@ -20,7 +20,6 @@ preamp.h
 # tom / filtro
 tone.h
 parametric_eq.h
-analog_tone.h
 dehum.h
 cabinet.h
 
