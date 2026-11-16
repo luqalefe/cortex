@@ -1,0 +1,62 @@
+{
+  "id": "delay",
+  "name": "Cortex Delay",
+  "subtitle": "Delay (estilo DL4, sem loop)",
+  "color": "#39d98a",
+  "dsp": "delay",
+  "modes": [
+    "Digital",
+    "Analog",
+    "Tape",
+    "Tube",
+    "Sweep",
+    "Multi-Head",
+    "Reverse",
+    "Ping-Pong",
+    "Rhythmic",
+    "Auto-Vol"
+  ],
+  "knobs": [
+    {
+      "id": "time",
+      "label": "Time",
+      "min": 1,
+      "max": 2000,
+      "def": 480,
+      "unit": "ms"
+    },
+    {
+      "id": "repeats",
+      "label": "Repeats",
+      "min": 0,
+      "max": 100,
+      "def": 40,
+      "unit": "%"
+    },
+    {
+      "id": "tweak",
+      "label": "Tweak",
+      "min": 0,
+      "max": 100,
+      "def": 30,
+      "unit": "%"
+    },
+    {
+      "id": "tweez",
+      "label": "Tweez",
+      "min": 0,
+      "max": 100,
+      "def": 50,
+      "unit": "%"
+    },
+    {
+      "id": "mix",
+      "label": "Mix",
+      "min": 0,
+      "max": 100,
+      "def": 35,
+      "unit": "%"
+    }
+  ],
+  "skin": "dl4"
+}

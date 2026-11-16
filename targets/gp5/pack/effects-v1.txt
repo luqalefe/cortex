@@ -1,0 +1,34 @@
+# Cortex Pack v1 para GP-5 — efeitos leves (cabem com folga na RAM).
+# Um basename por linha. Os 3 devoradores de RAM (echo, reverb, pitch) ficam
+# de fora do v1 e entram depois com buffers ajustados / no bloco de 122 KB.
+
+# infraestrutura do core (sempre presente; estruturais, não remover)
+radio.h
+signal_chain.h
+settings.h
+usb.h
+expression.h
+testtone.h
+
+# ganho / caráter
+boost.h
+klon.h
+rat.h
+frenchie.h
+preamp.h
+
+# tom / filtro
+tone.h
+parametric_eq.h
+dehum.h
+cabinet.h
+
+# dinâmica
+compressor.h
+autowah.h
+
+# modulação (buffers pequenos ~4 KB)
+tremolo.h
+vibrato.h
+flanger.h
+phaser.h

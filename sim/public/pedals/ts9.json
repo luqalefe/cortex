@@ -1,0 +1,32 @@
+{
+  "id": "ts9",
+  "name": "TS9",
+  "subtitle": "Overdrive",
+  "color": "#ff5545",
+  "dsp": "ts9",
+  "modes": [],
+  "knobs": [
+    {
+      "id": "drive",
+      "label": "Drive",
+      "min": 0,
+      "max": 10,
+      "def": 5
+    },
+    {
+      "id": "tone",
+      "label": "Tone",
+      "min": 0,
+      "max": 10,
+      "def": 5
+    },
+    {
+      "id": "level",
+      "label": "Level",
+      "min": 0,
+      "max": 10,
+      "def": 5
+    }
+  ],
+  "skin": "ts9"
+}

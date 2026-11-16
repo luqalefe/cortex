@@ -66,3 +66,85 @@
 - Simulador `sim/`: interface do pedal em HTML/JS puro (4 knobs SVG arrastáveis, footswitch de bypass, LED de nível, OLED), conecta no motor por WebSocket com reconexão.
 - Testado: `--selftest` detecta ecos do delay em 300/600/900 ms com realimentação decaindo (0,50→0,15→0,06) = DSP correto. `--list` enxerga a GP-5. Teste de ponta a ponta do WebSocket (cliente Python): handshake 101 + Sec-WebSocket-Accept corretos, `mix` e `bypass` aplicados e estado devolvido.
 - Pendente: ouvir o áudio ao vivo (precisa de fone/interface para evitar microfonia); mais efeitos no DSP; presets.
+
+## 2026-11-15 — OpenGP5 como backend do alvo GP-5
+
+- O usuário apontou o repositório **OpenGP5** (github.com/OpenGP5/OpenGP5, MIT): firmware aberto para a GP-5 que já resolve o que a nossa Fase A/B levantava — firmware dos dois processadores escrito do zero, flasher por USB (até web), emulador e framework de efeitos em C.
+- Confirma e corrige a nossa RE: controle = **BP1048B2 / Andes NDS32 V3 (core D1088)**; o chip **JAT é o DSP de áudio, ARM Cortex-M4F** (~192 MHz), não Andes. Formato **HTFW**, SysEx com nibbles + CRC-8 poli 0x07, flash SPI 2 MB, J7 = SWD, link UART 460800 8N1, áudio mono-in/estéreo-out 44,1 kHz em blocos de 64. Tudo bate com o que tínhamos.
+- Decisão do usuário: **clonar e aproveitar** (sala-limpa estrita suspensa para a parte GP-5; MIT é compatível com GPLv3). Visão: Codex como "SO" de efeitos portáteis (usuário importa efeitos nossos/da comunidade, rodam em várias plataformas). Modo de integração escolhido: **OpenGP5 = backend do alvo GP-5** (API de efeito própria e portátil; OpenGP5 como driver).
+- Clonado em `~/dev/sdk/OpenGP5` (commit 2040b64), fora do repo.
+- Criada a fundação da arquitetura (ver `docs/architecture.md`):
+  - `effects/codex_effect.h` — contrato portátil com perfis (host: float/2 s; GP-5: int16/~1 s, matemática do platform).
+  - `effects/delay/codex_delay.h` — delay portado para C puro (realimentação + tom), instância única.
+  - `targets/gp5/firmwares/codex-delay/{dsp/firmware.h,nds32/firmware.c}` — shim que liga o efeito ao platform do OpenGP5 (áudio int32<->float, settings numerados; knob=mix, PARA=time, foot=bypass).
+  - `targets/gp5/build.sh` — staging (efeito + headers lado a lado) + build do OpenGP5, sem tocar no clone.
+- Testado: delay compila e roda nos **dois** perfis. Host (float): ecos 300/600/900 ms, 0,575→0,165→0,061. GP-5 (int16, via harness `run_effect.c` + `gp5_math.c` do OpenGP5): ACK nos settings, ecos 300/600/900 ms decaindo. Mesmo comportamento do DSP Faust do motor Mac.
+- Limite honesto registrado: delay máximo cai de 2 s (Mac) para ~1 s na GP-5 (122 KB em int16). Nada foi gravado no pedal.
+- Próximos: motor Mac hospedar o efeito portátil pela mesma API (hoje Faust); generalizar o staging p/ qualquer efeito; build real do .bin (precisa dos compiladores do OpenGP5, ~190 MB) e flash [HUMANO].
+
+## 2026-11-15 — Diagnóstico do Bluetooth + renomeação p/ Cortex
+
+- **Bluetooth da GP-5 diagnosticado: hardware OK, defeito é de software/app.** Com o BT ligado no pedal (ícone na tela), o Mac viu o pedal anunciando como `GP-5 BLE` (RSSI -59 dBm, forte), **conectou** por BLE e leu o GATT: expõe o **serviço BLE-MIDI padrão** (03B80E5A-…) com a característica de dados (write/read/notify). Logo, rádio + antena + pilha BLE + GATT funcionam. O "não funciona" é do app/celular (bate com relatos de incompatibilidade no Android). Ferramentas: `re/ble-scan.py`, `re/ble-connect.py` (bleak no venv).
+- **Bônus:** como fala BLE-MIDI padrão, dá pra controlar o pedal sem o app da Valeton (canal extra p/ o protocolo A5, além da USB) e oferecer controle sem fio no futuro.
+- **Renomeação Codex → Cortex** (decisão do usuário). Por ora só o nome visível: README, docs e títulos. Identificadores no código (`codex_*`, `CODEX_*`, `CortexDsp`) e paths seguem `codex` e migram depois. Entradas antigas do diário ficam como estavam (log histórico).
+- **Decisão de rota:** flashar o Cortex na GP-5 **primeiro**; captura dos amps originais (A3) fica para depois (via reversão à Valeton quando quiser). Ciente de que cada flash é ~40s + risco de brick, e que o firmware de fábrica é recuperável (loader intacto + `.bin` oficial guardado).
+- Em andamento: download dos compiladores do OpenGP5 (`setup-toolchain.sh`, ~190 MB) para gerar o `.bin` real e flashar.
+
+## 2026-11-15 — PRIMEIRO FLASH: Cortex rodando na GP-5
+
+- **Marco:** primeiro firmware Cortex gravado em hardware real. Imagem `build/GP-5_codex-delay.bin` (delay portátil + shim do backend OpenGP5), gravada com `gp5tool.py flash --sections all --yes`.
+- Pré-checagem só-leitura (`re/usb-midi-probe.py`) desmentiu o falso "não responde" do status: pedal respondeu `12 30 -> 11 30 01 00` (app Valeton) e emite SysEx espontâneo `14 08 01` periódico (o que confundia o `gp5tool status`). Protocolo compatível.
+- Flash: DSP 0x63 (49.992 B, 2632 pacotes) + app 0x62 (20.496 B, 1079 pacotes), ~45 s, sem erro. O chatter espontâneo não atrapalhou a gravação.
+- Pós-flash: pedal enumera como `GP-5 Open FW`, `gp5tool status` = "open firmware". Build real usou os compiladores Andes NDS32 + ARM (OpenGP5 `setup-toolchain.sh`) e Docker (debian:bookworm-slim) para o lado de controle.
+- Recuperação disponível: Foot+PARA -> modo update; voltar à Valeton com o `.bin` oficial V1.0.6. Roteiro em `docs/gp5/roteiro-flash.md`.
+- Sem backup da unidade de fábrica (firmware de fábrica não é legível); rede de segurança = imagem oficial + loader intacto.
+- Pendente: testar áudio ao vivo (delay) e os controles físicos (knob PARA = time, volume = mix, footswitch = bypass).
+
+## 2026-11-15 — GuitarPedal (Torvalds) + mudança de licença p/ GPLv2
+
+- O usuário apontou github.com/torvalds/GuitarPedal: pedal digital (RP2354A Cortex-M33 + codec TI) com DSP em software. Arquitetura quase idêntica à nossa: **efeitos como headers compartilhados** entre firmware, bench e web app; **17 efeitos** (Rat, Klon, Frenchie, Boost, Preamp, cabinet, reverb, echo, flanger, phaser, tremolo, vibrato, autowah, pitch, EQ paramétrico, compressor, dehum); biblioteca DSP (`Audio/`: biquad, LFO, envelope, 1-polo, FFT); **web app por USB/BLE-MIDI** (`WebMIDI/`). Formato de efeito elegante: metadados nos comentários (`// POT: "Distortion" LINEAR(0 1)=0.45`, `ENUM(...)`), fonte única p/ DSP + UI.
+- **Licença: GPLv2-only** (padrão Torvalds; sem "or later" nem SPDX). Incompatível com GPLv3.
+- **Decisão do usuário: mudar o Cortex para GPLv2.** Unifica os três: GuitarPedal (GPLv2-only), OpenGP5 (MIT→compatível) e nosso código. Criados `LICENSE` (texto oficial GPLv2) e `NOTICE.md` (créditos/licenças de terceiros). Docs atualizados (GPLv3→GPLv2).
+- Clonado como referência em `~/dev/sdk/GuitarPedal` (fora do repo).
+- Aproveitável (a portar p/ o contrato de efeito do Cortex, com shim + checagem de CPU/RAM na GP-5): drives (Rat/Klon/Frenchie/Boost/Preamp), cabinet, echo, modulação, EQ, compressor — leves, cabem no M4F; reverb grande/pitch/FFT a avaliar (M4F tem menos fôlego que o RP2350). Avaliar também adotar o formato de metadados de efeito deles em vez de/junto com nosso JSON.
+- Pendente: começar a portar um drive (ex.: Rat ou Klon) para validar o pipeline efeito-de-terceiro → contrato Cortex → host/GP-5.
+
+## 2026-11-15 — Pack de efeitos do GuitarPedal rodando no host (Mac)
+
+- Objetivo do usuário: aproveitar TODOS os efeitos do GuitarPedal na software e na GP-5.
+- Descoberta do contrato: os efeitos NÃO são autônomos — dependem de acessores de pot gerados por `scripts/gen_effects.py` (a partir dos `// POT:` nos comentários), da lib `Audio/` (biquad, LFO, envelope, db_to_level…) e de stubs de plataforma (`bench/shim/`: sections.h etc.). O `effect.h` define o contrato (struct effect com init/step/pots, mix law, fade). O **bench** deles já compila tudo num PC.
+- **Prova no Mac:** `cd ~/dev/sdk/GuitarPedal/Validation && make bench` compilou (gcc→clang), gerou `effect_map.h` com os ~20 efeitos. Rodando float32 estéreo por stdin→stdout: Boost (ganho+clip), Rat (distorção), Tape Echo (eco), Reverb (cauda) todos processam corretamente. => **pack inteiro roda no host.**
+- Caminho de port confirmado: reusar `gen_effects.py` + `Audio/` + stubs; o bench é o molde do backend host, e um shim equivalente serve a GP-5 (M4F) com SAMPLES_PER_SEC=44100 e blocos de 64.
+- Pendente (rollout): (1) integrar o pack ao app do Mac (engine toca ao vivo + UI gerada dos metadados dos efeitos); (2) port p/ GP-5 (firmware DSP OpenGP5 incluindo effect_map+Audio+stubs M4F); (3) checar fôlego do M4F — drives/EQ/mod/compressor devem caber; reverb grande/pitch/FFT a avaliar (RP2350 deles tem mais RAM/CPU).
+- Nota: efeitos deles usam sample rate 48k (bench) vs 44,1k da GP-5 — tempos/coeficientes recalculam pelo SAMPLES_PER_SEC, sem reescrever efeito.
+
+## 2026-11-15 — Pack de efeitos na GP-5: medição de memória e subconjunto v1
+
+- Pergunta: dá pra portar o pack pra um device menor (GP-5)? Sim, com ajuste de memória.
+- Medição real (ARM Cortex-M4F, 44,1 kHz) via `targets/gp5/pack/measure-footprint.sh`:
+  - **Código (.text) nunca foi o gargalo:** ~24 KB (cabe nos 64 KB da seção DSP).
+  - **Gargalo é RAM:** pack completo (25 efeitos) = **~295 KB** de bss+data → estoura os 160 KB da GP-5.
+  - Três efeitos concentram quase tudo: echo (`int16_t[32768]` ~64 KB), reverb (Freeverb ~80 KB), pitch (`float[4*4096]` ~64 KB).
+- **Modificação (v1):** `targets/gp5/pack/effects-v1.txt` = 22 efeitos (todos os leves, sem echo/reverb/pitch). Resultado: **~85 KB** de RAM → cabe com folga (sobra ~75 KB p/ 1 pesado encolhido depois). Efeitos "estruturais" (ex.: `radio`) precisam ficar mesmo sem entrar na cadeia.
+- Próximos ajustes documentados no README do pack: echo encurtado/no bloco de 122 KB, pitch com `-DDISCONT_SHIFT=11`, reverb int16/menos combs.
+- Ainda falta o firmware DSP que roda o pack na GP-5 (espelhar o `bench/shim` deles p/ M4F). Esta etapa quantificou e definiu o subconjunto que cabe.
+
+## 2026-11-15 — Firmware do pack na GP-5: receita de port + constraint de RAM
+
+- Iniciada a montagem do firmware do pack. Lido o build do DSP do OpenGP5 (`platform/dsp/build.py`) e o bench do GuitarPedal.
+- **Constraint crítico descoberto:** a GP-5 tem só **19,5 KB para variáveis normais** (.data+.bss); os 122 KB grandes são a região `.large` separada. O v1 tem ~81 KB de bss em `static` comum → NÃO cabe nos 19,5 KB. Modificação central do port: **realocar o bss do pack para o banco de 122 KB** via link.ld próprio (sem editar os efeitos).
+- Receita de integração extraída e documentada em `targets/gp5/pack/PORT-PLAN.md`: como dirigir o core (anel i2s + `single_sample`), ordem de include, símbolos a definir (effect_chain, get_usb/radio_audio_input, put_radio_audio_output), init (reset/routing/pots/init/meters), shim do M4F (espelha `bench/shim`), truque de staging (tudo sob `dsp/` para o `-I<fw>/dsp` do OpenGP5), e medição de CPU via `GP5_CYCLES_WORST`.
+- **CPU:** medição real sai dos contadores do OpenGP5 (`GP5_CYCLES_WORST` @0x20007F78) com o firmware rodando no pedal — ainda não dá pra medir sem o firmware. Estimativa prévia: efeitos leves cabem bem no orçamento (~4.350 ciclos/amostra); pesados (reverb/FFT) a confirmar.
+- Próximo: codificar shim+driver+link.ld, primeiro build, flash, e ler a carga real.
+
+## 2026-11-15 — Firmware do Cortex Pack RODANDO na GP-5 + CPU medida
+
+- Montado o firmware do pack (core de áudio + efeitos do GuitarPedal) sobre a plataforma do OpenGP5. Arquivos em `targets/gp5/pack/src/`: `pack.c` (driver: emula o anel i2s, dirige `single_sample`, expõe API), `firmware.h` (liga ao contrato gp5_dsp.h), `link-pack.ld` (realoca o .bss do pack p/ o banco de 122 KB), `build-pack.sh` (staging + compila pack.o separado + linka com o responder + empacota HTFW).
+- Iterações de build resolvidas: headers padrão (stddef/stdbool), efeito `analog_tone` removido (depende de hwtone.h do hardware deles), `memcpy/memset/memmove`+`log2f` vêm do OpenGP5 (não redefinir; gp5_math.c fora do link p/ evitar colisão de log2f), adicionados `fabsf/sqrtf/floorf/rintf` (faltavam com -nostdlib).
+- **Build cabe com folga:** código ~36 KB (de 64), RAM normal ~5,7 KB (de 19,5), banco grande ~15 KB (de 122) — a relocação do .bss p/ `.large` funcionou.
+- **Gravado na GP-5 (28 s) e MEDIDO** com `gp5_link.py load`:
+  - cadeia Signal Chain + Boost: **~83.800 ciclos/bloco = ~30%** do orçamento (278k).
+  - pior bloco 255.197 (91,8%), **0 blocos atrasados** → roda em tempo real sem dropout.
+  - pico isolado provável de init/analisador; investigar depois.
+- Conclusão: **o sistema do Linus (efeitos+DSP) roda na GP-5 em tempo real.** Sobra CPU e RAM para encadear vários efeitos e trazer 1 pesado. O pedal agora roda o pack (cadeia padrão Boost); reverter = reflash do delay ou da Valeton.
+- Próximos: medir cadeias maiores, mapear footswitch/knobs nos efeitos do pack, investigar o pico, trazer echo/reverb encolhidos (há folga no banco de 122 KB).
